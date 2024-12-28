@@ -1,0 +1,164 @@
+<!-- index.html (Main Page) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Horror Chills - Tales of Terror</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Crimson Text', serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #blood;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            position: relative;
+            text-align: center;
+            padding: 40px 0;
+            animation: flicker 5s infinite;
+        }
+
+        h1 {
+            font-size: 4em;
+            font-family: 'Nosifer', cursive;
+            color: #cc0000;
+            text-shadow: 
+                0 0 10px rgba(204, 0, 0, 0.7),
+                0 0 20px rgba(204, 0, 0, 0.5),
+                0 0 30px rgba(204, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .story-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 40px 0;
+        }
+
+        .story-card {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+        }
+
+        .story-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 0 20px rgba(204, 0, 0, 0.3),
+                0 0 40px rgba(204, 0, 0, 0.2);
+        }
+
+        .story-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(204, 0, 0, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .story-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .story-title {
+            font-size: 1.5em;
+            color: #cc0000;
+            margin-bottom: 15px;
+        }
+
+        .story-excerpt {
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .fog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.5;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .story-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="fog"></div>
+    <div class="container">
+        <header>
+            <h1>HORROR CHILLS</h1>
+        </header>
+        
+        <main class="story-grid">
+            <a href="story.html?id=1" class="story-card">
+                <h2 class="story-title">The Whispers in Room 213</h2>
+                <p class="story-excerpt">When the night falls silent, the walls of Room 213 begin their haunting symphony. No one who's spent a full night there has ever spoken of what they heard...</p>
+            </a>
+            
+            <a href="story.html?id=2" class="story-card">
+                <h2 class="story-title">Shadows That Follow</h2>
+                <p class="story-excerpt">She noticed her shadow wasn't quite following her movements anymore. That's when she realized it wasn't her shadow at all...</p>
+            </a>
+            
+            <a href="story.html?id=3" class="story-card">
+                <h2 class="story-title">The Last Text Message</h2>
+                <p class="story-excerpt">The message came from her sister's phone at 3:33 AM. The only problem? Her sister had been dead for two years...</p>
+            </a>
+            
+            <a href="story.html?id=4" class="story-card">
+                <h2 class="story-title">The Mirror's Other Side</h2>
+                <p class="story-excerpt">Every night at midnight, his reflection would smile back at him. Tonight, it waved...</p>
+            </a>
+        </main>
+    </div>
+</body>
+</html>
+

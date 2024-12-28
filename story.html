@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horror Story - Horror Chills</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Crimson Text', serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #ccc;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #cc0000;
+            text-decoration: none;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #ff0000;
+        }
+
+        .story-title {
+            font-size: clamp(1.5em, 5vw, 2.5em);
+            color: #cc0000;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(204, 0, 0, 0.5);
+        }
+
+        .story-meta {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 20px;
+            font-size: clamp(0.9em, 3vw, 1em);
+        }
+
+        .story-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            margin: 20px 0;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(204, 0, 0, 0.3);
+        }
+
+        .story-content {
+            font-size: clamp(1em, 3vw, 1.1em);
+            line-height: 1.8;
+            padding: 0 10px;
+        }
+
+        .story-content p {
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .story-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .nav-button {
+            color: #cc0000;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid #cc0000;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-size: clamp(0.9em, 3vw, 1em);
+        }
+
+        .nav-button:hover {
+            background-color: #cc0000;
+            color: #000;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .parts-list {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .part-button {
+            padding: 5px 15px;
+            background-color: transparent;
+            border: 1px solid #cc0000;
+            color: #cc0000;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .part-button.active {
+            background-color: #cc0000;
+            color: #000;
+        }
+
+        .part-button:hover {
+            background-color: #cc0000;
+            color: #000;
+        }
+
+        .fog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .story-content {
+                padding: 0 5px;
+            }
+
+            .nav-button {
+                width: 100%;
+                text-align: center;
+                margin: 5px 0;
+            }
+
+            .story-navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="fog"></div>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-button">← Back to Stories</a>
+            <h1 class="story-title">Story Title</h1>
+            <div class="story-meta">
+                Written by Anonymous | Posted on <span class="story-date">October 31, 2024</span>
+            </div>
+        </header>
+
+        <div class="parts-list">
+            <!-- Part buttons will be dynamically added here -->
+        </div>
+
+        <main>
+            <img src="/api/placeholder/800/400" alt="Story Featured Image" class="story-image">
+            
+            <article class="story-content">
+                <!-- Story content will be loaded here -->
+            </article>
+
+            <div class="story-navigation">
+                <a href="#" class="nav-button prev-part">← Previous Part</a>
+                <a href="#" class="nav-button next-part">Next Part →</a>
+            </div>
+        </main>
+    </div>
+    <script>
+// Get story ID from URL parameters (e.g., story.html?id=1)
+function getStoryId() {
+    const url = window.location.href;
+    const match = url.match(/[?&]id=(\d+)/);
+    return match ? match[1] : null;
+}
+
+async function loadStory() {
+    const storyId = getStoryId();
+    
+    if (!storyId) {
+        document.querySelector('.story-content').innerHTML = '<p>No story ID provided.</p>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/stories/s${storyId}.json`);
+        if (!response.ok) {
+            throw new Error('Story not found');
+        }
+        const story = await response.json();
+        
+        // Update page content
+        document.querySelector('.story-title').textContent = story.title;
+        document.querySelector('.story-date').textContent = story.date;
+        document.querySelector('.story-meta').innerHTML = 
+            `Written by ${story.author} | Posted on <span class="story-date">${story.date}</span>`;
+        document.querySelector('.story-image').src = story.imageUrl;
+        document.querySelector('.story-image').alt = story.title;
+        
+        // Create paragraphs from story content
+        const storyContent = document.querySelector('.story-content');
+        storyContent.innerHTML = ''; // Clear placeholder content
+        story.content.forEach(paragraph => {
+            const p = document.createElement('p');
+            p.textContent = paragraph;
+            storyContent.appendChild(p);
+        });
+    } catch (error) {
+        console.error('Error loading story:', error);
+        document.querySelector('.story-content').innerHTML = '<p>Story not found.</p>';
+    }
+}
+
+// Load story when page loads
+window.addEventListener('load', loadStory);
+    </script>
+</body>
+</html>
