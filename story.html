@@ -196,13 +196,6 @@
         </main>
     </div>
     <script>
-// Get story ID from URL parameters (e.g., story.html?id=1)
-function getStoryId() {
-    const url = window.location.href;
-    const match = url.match(/[?&]id=(\d+)/);
-    return match ? match[1] : null;
-}
-
 async function loadStory() {
     const storyId = getStoryId();
     
@@ -226,6 +219,25 @@ async function loadStory() {
         document.querySelector('.story-image').src = story.imageUrl;
         document.querySelector('.story-image').alt = story.title;
         
+        // Handle navigation buttons
+        const prevButton = document.querySelector('.prev-part');
+        const nextButton = document.querySelector('.next-part');
+
+        // Check for exact presence of fields
+        if ('previousPart' in story) {
+            prevButton.href = `?id=${story.previousPart}`;
+            prevButton.style.display = '';
+        } else {
+            prevButton.style.display = 'none';
+        }
+
+        if ('nextPart' in story) {
+            nextButton.href = `?id=${story.nextPart}`;
+            nextButton.style.display = '';
+        } else {
+            nextButton.style.display = 'none';
+        }
+        
         // Create paragraphs from story content
         const storyContent = document.querySelector('.story-content');
         storyContent.innerHTML = ''; // Clear placeholder content
@@ -240,7 +252,13 @@ async function loadStory() {
     }
 }
 
-// Load story when page loads
+// Keep existing getStoryId function and event listener
+function getStoryId() {
+    const url = window.location.href;
+    const match = url.match(/[?&]id=(\d+)/);
+    return match ? match[1] : null;
+}
+
 window.addEventListener('load', loadStory);
     </script>
 </body>
