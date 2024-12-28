@@ -1,6 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cursor trail effect
+            function createBloodDrop(x, y) {
+                const drop = document.createElement('div');
+                drop.className = 'blood-drop';
+                drop.style.cssText = `
+                    position: fixed;
+                    left: ${x}px;
+                    top: ${y}px;
+                    width: ${Math.random() * 10 + 5}px;
+                    height: ${Math.random() * 10 + 5}px;
+                    background: radial-gradient(circle, #800 0%, #600 100%);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 9999;
+                    opacity: 0.7;
+                `;
+                document.body.appendChild(drop);
+
+                // Animate and remove the drop
+                let posY = y;
+                let opacity = 0.7;
+                const interval = setInterval(() => {
+                    posY += 2;
+                    opacity -= 0.01;
+                    drop.style.top = posY + 'px';
+                    drop.style.opacity = opacity;
+
+                    if (opacity <= 0) {
+                        clearInterval(interval);
+                        drop.remove();
+                    }
+                }, 20);
+            }
+
+            // Add blood trail on mouse move (throttled)
+            let lastTime = 0;
+            document.addEventListener('mousemove', (e) => {
+                const now = Date.now();
+                if (now - lastTime >= 50) { // Throttle to every 50ms
+                    createBloodDrop(e.clientX, e.clientY);
+                    lastTime = now;
+                }
+            });
+
+            // Flicker effect for story cards
+            const storyCards = document.querySelectorAll('.story-card');
+            storyCards.forEach(card => {
+                card.addEventListener('mouseover', () => {
+                    const interval = setInterval(() => {
+                        const randomOpacity = 0.8 + Math.random() * 0.2;
+                        card.style.opacity = randomOpacity;
+                    }, 100);
+
+                    card.addEventListener('mouseout', () => {
+                        clearInterval(interval);
+                        card.style.opacity = 1;
+                    }, { once: true });
+                });
+            });
+
+            // Random ambient sounds
+            const createAudioElement = (src) => {
+                const audio = new Audio(src);
+                audio.volume = 0.1;
+                return audio;
+            };
+
+            const ambientSounds = [
+                createAudioElement('data:audio/wav;base64,UklGRh...'), // Base64 encoded short horror ambient sound
+                // Add more ambient sounds as needed
+            ];
+
+            // Play random ambient sounds
+            const playRandomSound = () => {
+                const randomDelay = Math.random() * 10000 + 5000; // Random delay between 5-15 seconds
+                setTimeout(() => {
+                    const randomSound = ambientSounds[Math.floor(Math.random() * ambientSounds.length)];
+                    randomSound.play().catch(() => {}); // Catch and ignore autoplay restrictions
+                    playRandomSound(); // Schedule next sound
+                }, randomDelay);
+            };
+
+            // Scroll reveal effect
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            storyCards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
+            });
+
+            // Dynamic blood drips
+            const createRandomDrip = () => {
+                const drip = document.createElement('div');
+                const startX = Math.random() * window.innerWidth;
+                
+                drip.className = 'random-drip';
+                drip.style.cssText = `
+                    position: fixed;
+                    left: ${startX}px;
+                    top: -20px;
+                    width: ${Math.random() * 3 + 2}px;
+                    height: ${Math.random() * 20 + 10}px;
+                    background: linear-gradient(to bottom, #800, #600);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 998;
+                `;
+
+                document.body.appendChild(drip);
+
+                // Animate the drip
+                let posY = -20;
+                let speed = Math.random() * 2 + 1;
+                
+                const animate = () => {
+                    posY += speed;
+                    drip.style.top = posY + 'px';
+                    
+                    if (posY < window.innerHeight) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        drip.remove();
+                    }
+                };
+
+                animate();
+            };
+
+            // Create random drips periodically
+            setInterval(createRandomDrip, 2000);
+
+            // Title horror effect
+            const title = document.querySelector('h1');
+            const createGlitchEffect = () => {
+                const originalText = title.textContent;
+                const glitchText = originalText
+                    .split('')
+                    .map(char => Math.random() > 0.8 ? String.fromCharCode(char.charCodeAt(0) + Math.floor(Math.random() * 5)) : char)
+                    .join('');
+                
+                title.textContent = glitchText;
+                setTimeout(() => {
+                    title.textContent = originalText;
+                }, 100);
+            };
+
+            setInterval(createGlitchEffect, 3000);
+
+            // Story card hover effect
+            storyCards.forEach(card => {
+                card.addEventListener('mouseover', () => {
+                    const titles = document.querySelectorAll('.story-title');
+                    titles.forEach(title => {
+                        if (title !== card.querySelector('.story-title')) {
+                            title.style.color = '#600';
+                        }
+                    });
+                });
+
+                card.addEventListener('mouseout', () => {
+                    const titles = document.querySelectorAll('.story-title');
+                    titles.forEach(title => {
+                        title.style.color = '#ff0000';
+                    });
+                });
+            });
+        });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Horror Chills - Tales of Terror</title>
