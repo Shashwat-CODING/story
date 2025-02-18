@@ -9,5 +9,12 @@ jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Request to Keep Alive
-        run: curl -s -o /dev/null -w "%{http_code}" https://test-fn50.onrender.com/
+      - name: Wait for Service to Become Alive
+        run: |
+          URL="https://test-fn50.onrender.com/"
+          echo "Checking if service is alive..."
+          until curl -s -o /dev/null -w "%{http_code}" "$URL" | grep -q "200"; do
+            echo "Service is down, retrying in 10 seconds..."
+            sleep 10
+          done
+          echo "Service is up and running!"
