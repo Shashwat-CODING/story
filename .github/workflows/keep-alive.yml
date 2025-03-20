@@ -1,4 +1,4 @@
-name: Test Proxies
+name: Test Proxies - Indian IPs Only
 on:
   schedule:
     - cron: '*/15 * * * *'  # Run every 15 minutes
@@ -38,12 +38,12 @@ jobs:
                       "https": f"http://{proxy}"
                   }
                   
-                  # More comprehensive testing - check actual IP address
+                  # Test API connectivity
                   response = requests.get("https://api.ipify.org", 
                                           proxies=proxies, 
                                           timeout=15)
                   
-                  # Verify we actually got a response and the proxy is truly working
+                  # Verify we actually got a response
                   if response.status_code == 200 and len(response.text.strip()) > 0:
                       # Try to get location info
                       try:
@@ -52,27 +52,17 @@ jobs:
                                                           timeout=15)
                           location_data = location_response.json()
                           country = location_data.get('country', 'Unknown')
-                          city = location_data.get('city', 'Unknown')
                           
-                          print(f"Proxy {proxy} is working. IP: {response.text.strip()}, Location: {city}, {country}")
-                          
-                          # Add location data to return value
-                          return {
-                              "proxy": proxy,
-                              "ip": response.text.strip(),
-                              "country": country,
-                              "city": city,
-                              "region": location_data.get('region', 'Unknown')
-                          }
+                          # Only keep Indian IPs
+                          if country == 'IN':
+                              print(f"Proxy {proxy} is working. IP: {response.text.strip()}, Country: {country} (INDIA)")
+                              return proxy
+                          else:
+                              print(f"Proxy {proxy} is working but not Indian (Country: {country})")
+                              return None
                       except Exception as e:
-                          print(f"Proxy {proxy} is working (IP: {response.text.strip()}) but location check failed: {str(e)}")
-                          return {
-                              "proxy": proxy,
-                              "ip": response.text.strip(),
-                              "country": "Unknown",
-                              "city": "Unknown",
-                              "region": "Unknown"
-                          }
+                          print(f"Proxy {proxy} is working but location check failed: {str(e)}")
+                          return None
                   else:
                       print(f"Proxy {proxy} returned status code {response.status_code}")
                       return None
@@ -90,22 +80,21 @@ jobs:
               print(f"Error fetching proxy list: {str(e)}")
               proxy_list = []
           
-          # Test all proxies in parallel, but with fewer concurrent workers to avoid rate limits
-          working_proxies = []
+          # Test all proxies in parallel, but with fewer concurrent workers
+          indian_proxies = []
           with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
               future_to_proxy = {executor.submit(test_proxy, proxy): proxy for proxy in proxy_list}
               for future in concurrent.futures.as_completed(future_to_proxy):
                   result = future.result()
                   if result:
-                      working_proxies.append(result)
+                      indian_proxies.append(result)
           
-          # Save working proxies to wpr.json with more detailed information
-          working_data = {"proxies": [p["proxy"] for p in working_proxies], 
-                          "details": working_proxies}
+          # Save only Indian proxies to wpr.json, without details
+          working_data = {"proxies": indian_proxies}
           with open("wpr.json", "w") as f:
               json.dump(working_data, f, indent=2)
           
-          print(f"Found {len(working_proxies)} working proxies out of {len(proxy_list)}")
+          print(f"Found {len(indian_proxies)} working Indian proxies out of {len(proxy_list)} total")
           EOF
           
       - name: Commit and push changes
@@ -113,4 +102,4 @@ jobs:
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
           git add wpr.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update working proxies list" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update working Indian proxies list" && git push)
