@@ -33,21 +33,46 @@ jobs:
           
           def test_proxy(proxy):
               try:
-                  # Define a timeout to avoid hanging
                   proxies = {
                       "http": f"http://{proxy}",
                       "https": f"http://{proxy}"
                   }
                   
-                  # Use a test URL (example.com is a neutral test site)
-                  response = requests.get("http://example.com", 
+                  # More comprehensive testing - check actual IP address
+                  response = requests.get("https://api.ipify.org", 
                                           proxies=proxies, 
-                                          timeout=10)
+                                          timeout=15)
                   
-                  # Consider it working if we get a 200 response
-                  if response.status_code == 200:
-                      print(f"Proxy {proxy} is working")
-                      return proxy
+                  # Verify we actually got a response and the proxy is truly working
+                  if response.status_code == 200 and len(response.text.strip()) > 0:
+                      # Try to get location info
+                      try:
+                          location_response = requests.get("https://ipinfo.io/json",
+                                                          proxies=proxies,
+                                                          timeout=15)
+                          location_data = location_response.json()
+                          country = location_data.get('country', 'Unknown')
+                          city = location_data.get('city', 'Unknown')
+                          
+                          print(f"Proxy {proxy} is working. IP: {response.text.strip()}, Location: {city}, {country}")
+                          
+                          # Add location data to return value
+                          return {
+                              "proxy": proxy,
+                              "ip": response.text.strip(),
+                              "country": country,
+                              "city": city,
+                              "region": location_data.get('region', 'Unknown')
+                          }
+                      except Exception as e:
+                          print(f"Proxy {proxy} is working (IP: {response.text.strip()}) but location check failed: {str(e)}")
+                          return {
+                              "proxy": proxy,
+                              "ip": response.text.strip(),
+                              "country": "Unknown",
+                              "city": "Unknown",
+                              "region": "Unknown"
+                          }
                   else:
                       print(f"Proxy {proxy} returned status code {response.status_code}")
                       return None
@@ -65,17 +90,18 @@ jobs:
               print(f"Error fetching proxy list: {str(e)}")
               proxy_list = []
           
-          # Test all proxies in parallel
+          # Test all proxies in parallel, but with fewer concurrent workers to avoid rate limits
           working_proxies = []
-          with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
               future_to_proxy = {executor.submit(test_proxy, proxy): proxy for proxy in proxy_list}
               for future in concurrent.futures.as_completed(future_to_proxy):
                   result = future.result()
                   if result:
                       working_proxies.append(result)
           
-          # Save working proxies to wpr.json
-          working_data = {"proxies": working_proxies}
+          # Save working proxies to wpr.json with more detailed information
+          working_data = {"proxies": [p["proxy"] for p in working_proxies], 
+                          "details": working_proxies}
           with open("wpr.json", "w") as f:
               json.dump(working_data, f, indent=2)
           
