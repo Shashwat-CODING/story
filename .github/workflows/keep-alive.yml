@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests yt-dlp
           
       - name: Test proxies
         run: |
@@ -29,50 +29,75 @@ jobs:
           import json
           import requests
           import concurrent.futures
+          import subprocess
           import time
           
           def test_proxy(proxy):
               try:
+                  # First check if it's an Indian IP
                   proxies = {
                       "http": f"http://{proxy}",
                       "https": f"http://{proxy}"
                   }
                   
-                  # Test API connectivity
-                  response = requests.get("https://api.ipify.org", 
-                                          proxies=proxies, 
-                                          timeout=15)
+                  # Check location
+                  location_response = requests.get("https://ipinfo.io/json",
+                                                 proxies=proxies,
+                                                 timeout=15)
+                  location_data = location_response.json()
+                  country = location_data.get('country', 'Unknown')
                   
-                  # Verify we actually got a response
-                  if response.status_code == 200 and len(response.text.strip()) > 0:
-                      # Try to get location info
+                  # Only test further if Indian IP
+                  if country != 'IN':
+                      print(f"Proxy {proxy} is not Indian (Country: {country})")
+                      return None
+                  
+                  # Test using yt-dlp to get video info
+                  # Using a popular video as test
+                  video_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                  
+                  cmd = [
+                      "yt-dlp", 
+                      "--proxy", f"http://{proxy}",
+                      "--dump-json",
+                      "--no-playlist",
+                      "--skip-download",
+                      video_url
+                  ]
+                  
+                  # Set timeout for the subprocess
+                  result = subprocess.run(
+                      cmd, 
+                      capture_output=True, 
+                      text=True, 
+                      timeout=30
+                  )
+                  
+                  if result.returncode == 0 and len(result.stdout.strip()) > 0:
                       try:
-                          location_response = requests.get("https://ipinfo.io/json",
-                                                          proxies=proxies,
-                                                          timeout=15)
-                          location_data = location_response.json()
-                          country = location_data.get('country', 'Unknown')
-                          
-                          # Only keep Indian IPs
-                          if country == 'IN':
-                              print(f"Proxy {proxy} is working. IP: {response.text.strip()}, Country: {country} (INDIA)")
+                          # Parse the JSON to validate it's proper video info
+                          video_data = json.loads(result.stdout)
+                          if 'id' in video_data and 'title' in video_data:
+                              print(f"Proxy {proxy} successfully retrieved video info. Country: {country} (INDIA)")
                               return proxy
-                          else:
-                              print(f"Proxy {proxy} is working but not Indian (Country: {country})")
-                              return None
-                      except Exception as e:
-                          print(f"Proxy {proxy} is working but location check failed: {str(e)}")
+                      except json.JSONDecodeError:
+                          print(f"Proxy {proxy} returned invalid JSON")
                           return None
                   else:
-                      print(f"Proxy {proxy} returned status code {response.status_code}")
+                      error = result.stderr.strip() if result.stderr else "Unknown error"
+                      print(f"Proxy {proxy} failed to retrieve video info: {error}")
                       return None
+                      
+              except subprocess.TimeoutExpired:
+                  print(f"Proxy {proxy} timed out during yt-dlp test")
+                  return None
               except Exception as e:
                   print(f"Proxy {proxy} failed: {str(e)}")
                   return None
           
           # Fetch the proxy list
           try:
-              response = requests.get("https://raw.githubusercontent.com/Shashwat-CODING/yt/refs/heads/main/proxy.json")
+              response = requests.get("https://backendmix.vercel.app/ips")
               data = response.json()
               proxy_list = data.get("proxies", [])
               print(f"Found {len(proxy_list)} proxies to test")
@@ -81,20 +106,20 @@ jobs:
               proxy_list = []
           
           # Test all proxies in parallel, but with fewer concurrent workers
-          indian_proxies = []
-          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+          working_proxies = []
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
               future_to_proxy = {executor.submit(test_proxy, proxy): proxy for proxy in proxy_list}
               for future in concurrent.futures.as_completed(future_to_proxy):
                   result = future.result()
                   if result:
-                      indian_proxies.append(result)
+                      working_proxies.append(result)
           
-          # Save only Indian proxies to wpr.json, without details
-          working_data = {"proxies": indian_proxies}
+          # Save working proxies to wpr.json
+          working_data = {"proxies": working_proxies}
           with open("wpr.json", "w") as f:
               json.dump(working_data, f, indent=2)
           
-          print(f"Found {len(indian_proxies)} working Indian proxies out of {len(proxy_list)} total")
+          print(f"Found {len(working_proxies)} working Indian proxies out of {len(proxy_list)} total")
           EOF
           
       - name: Commit and push changes
