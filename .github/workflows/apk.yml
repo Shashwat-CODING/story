@@ -27,13 +27,22 @@ jobs:
             extension: '.exe'
 
     steps:
+    - name: Git Configuration
+      run: |
+        git config --global safe.directory '*'
+        git config --global --unset-all core.sshCommand || true
+      shell: bash
+
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
@@ -91,6 +100,15 @@ jobs:
     permissions:
       contents: write
     steps:
+    - name: Git Configuration
+      run: |
+        git config --global safe.directory '*'
+        git config --global --unset-all core.sshCommand || true
+      shell: bash
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Download artifacts
       uses: actions/download-artifact@v4
 
