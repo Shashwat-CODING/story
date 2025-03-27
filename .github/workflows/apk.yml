@@ -1,110 +1,98 @@
-name: Build Android APK
+name: Build Ytify Multiplatform Releases
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact-name: ytify-linux
+            extension: ''
+          - os: macos-latest
+            platform: macos
+            artifact-name: ytify-macos
+            extension: ''
+          - os: windows-latest
+            platform: windows
+            artifact-name: ytify-windows
+            extension: '.exe'
 
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
+        cache: 'pip'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          git \
-          python3-pip \
-          python3-setuptools \
-          python3-wheel \
-          openjdk-11-jdk \
-          autoconf \
-          libtool \
-          pkg-config \
-          zlib1g-dev \
-          libncurses5-dev \
-          libncursesw5-dev \
-          libtinfo6 \
-          cmake \
-          libssl-dev \
-          libffi-dev
-
-    - name: Install Python dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install --upgrade setuptools
-        pip install buildozer cython
-        pip install kivy innertube requests
+        pip install pyinstaller pywebview flask flask-cors requests innertube
 
-    - name: Install Buildozer
+    - name: Download icon
       run: |
-        git clone https://github.com/kivy/buildozer.git
-        cd buildozer
-        python setup.py install
-        cd ..
+        curl -L https://raw.githubusercontent.com/${{ github.repository }}/main/icon.ico -o icon.ico
+      if: matrix.platform == 'windows'
+      continue-on-error: true
 
-    - name: Prepare buildozer.spec
+    - name: Build with PyInstaller
       run: |
-        cp buildozer.spec buildozer.spec.backup
-        sed -i 's/requirements = .*/requirements = python3,kivy,innertube,requests/' buildozer.spec
-        sed -i 's/android.permissions =/android.permissions = INTERNET/' buildozer.spec
+        pyinstaller --onefile --windowed ${{ matrix.platform == 'windows' && '--icon=icon.ico' || '' }} Ytify.py
 
-    - name: Install p4a dependencies
+    - name: Rename executable
       run: |
-        pip install python-for-android
-        pip install --upgrade cython
-        pip install "urllib3<2.0"
+        cd dist
+        mv Ytify${{ matrix.extension }} ${{ matrix.artifact-name }}${{ matrix.extension }}
+      shell: bash
 
-    - name: Build APK
+    - name: Generate SHA256 Checksum
       run: |
-        buildozer android debug || echo "Build failed"
+        cd dist
+        sha256sum ${{ matrix.artifact-name }}${{ matrix.extension }} > ${{ matrix.artifact-name }}.sha256
+      shell: bash
 
-    - name: Create Release Folder
-      run: |
-        mkdir -p release/apks
-        cp bin/*.apk release/apks/ || echo "No APK found"
-        ls -la release/apks/
-
-    - name: Upload APK Artifact
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ytify-apk
-        path: release/apks/
-        retention-days: 30
+        name: ${{ matrix.artifact-name }}
+        path: |
+          dist/${{ matrix.artifact-name }}${{ matrix.extension }}
+          dist/${{ matrix.artifact-name }}.sha256
+        retention-days: 5
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: release/apks/*.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          **/ytify-*
+          **/ytify-*.sha256
+        generate_release_notes: true
+        draft: false
+        prerelease: false
 
-    - name: Debug Information
-      if: failure()
+    - name: Print Release Assets
       run: |
-        echo "Build directory contents:"
-        ls -la
-        echo "Buildozer spec contents:"
-        cat buildozer.spec
-        echo "Python version:"
-        python --version
-        echo "Pip list:"
-        pip list
-        echo "System information:"
-        uname -a
-        cat /etc/os-release
+        echo "Release assets:"
+        ls -R
