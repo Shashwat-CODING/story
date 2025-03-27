@@ -34,12 +34,17 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pywebview flask flask-cors requests innertube
+        pip install \
+          pyinstaller \
+          pywebview \
+          flask \
+          flask-cors \
+          requests \
+          innertube
 
     - name: Download icon
       run: |
@@ -62,6 +67,14 @@ jobs:
         cd dist
         sha256sum ${{ matrix.artifact-name }}${{ matrix.extension }} > ${{ matrix.artifact-name }}.sha256
       shell: bash
+      if: matrix.os != 'windows-latest'
+
+    - name: Generate SHA256 Checksum (Windows)
+      run: |
+        cd dist
+        certutil -hashfile ${{ matrix.artifact-name }}${{ matrix.extension }} SHA256 > ${{ matrix.artifact-name }}.sha256
+      shell: cmd
+      if: matrix.os == 'windows-latest'
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -80,6 +93,11 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4
+
+    - name: List downloaded artifacts
+      run: |
+        echo "Downloaded artifacts:"
+        ls -R
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
